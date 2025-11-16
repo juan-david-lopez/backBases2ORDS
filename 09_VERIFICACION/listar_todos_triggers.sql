@@ -1,0 +1,11 @@
+SET LINESIZE 200
+SET PAGESIZE 100
+COLUMN trigger_name FORMAT A40
+COLUMN table_name FORMAT A30
+COLUMN status FORMAT A10
+
+SELECT trigger_name, status, table_name 
+FROM USER_TRIGGERS 
+ORDER BY trigger_name;
+
+EXIT;

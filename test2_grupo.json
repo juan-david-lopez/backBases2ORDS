@@ -1,0 +1,29 @@
+﻿{
+    "items":  [
+                  {
+                      "cod_estudiante":  "202500001",
+                      "estudiante":  "Juan PÃ©rez",
+                      "nota_final":  4.5,
+                      "resultado":  "APROBADO",
+                      "detalle_calificaciones":  null
+                  }
+              ],
+    "hasMore":  false,
+    "limit":  100,
+    "offset":  0,
+    "count":  1,
+    "links":  [
+                  {
+                      "rel":  "self",
+                      "href":  "http://localhost:8080/ords/academico/calificaciones/grupo/7"
+                  },
+                  {
+                      "rel":  "describedby",
+                      "href":  "http://localhost:8080/ords/academico/metadata-catalog/calificaciones/grupo/item"
+                  },
+                  {
+                      "rel":  "first",
+                      "href":  "http://localhost:8080/ords/academico/calificaciones/grupo/7"
+                  }
+              ]
+}

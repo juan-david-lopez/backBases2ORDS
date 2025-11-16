@@ -1,0 +1,15 @@
+﻿{
+    "cod_estudiante":  "202500001",
+    "estudiante":  "Juan PÃ©rez",
+    "nombre_programa":  "IngenierÃÂ­a de Sistemas",
+    "promedio_acumulado":  4.3,
+    "asignaturas_aprobadas":  4,
+    "asignaturas_reprobadas":  0,
+    "creditos_aprobados":  14,
+    "links":  [
+                  {
+                      "rel":  "collection",
+                      "href":  "http://localhost:8080/ords/academico/calificaciones/historial/"
+                  }
+              ]
+}

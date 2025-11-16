@@ -1,0 +1,39 @@
+-- Corregir tabla HORARIO_GRUPO con nombres únicos de constraints
+DROP TABLE HORARIO_GRUPO CASCADE CONSTRAINTS;
+
+CREATE TABLE HORARIO_GRUPO (
+    cod_horario_grupo NUMBER(15) NOT NULL,
+    cod_grupo NUMBER(12) NOT NULL,
+    cod_salon NUMBER(8),
+    dia_semana VARCHAR2(15) NOT NULL,
+    hora_inicio VARCHAR2(5) NOT NULL,
+    hora_fin VARCHAR2(5) NOT NULL,
+    tipo_sesion VARCHAR2(20) DEFAULT 'TEORICA',
+    fecha_registro TIMESTAMP DEFAULT SYSTIMESTAMP,
+    CONSTRAINT PK_HORARIO_GRUPO PRIMARY KEY (cod_horario_grupo),
+    CONSTRAINT FK_HORARIO_GRUPO_GRUPO FOREIGN KEY (cod_grupo) REFERENCES GRUPO(cod_grupo),
+    CONSTRAINT FK_HORARIO_GRUPO_SALON FOREIGN KEY (cod_salon) REFERENCES SALON(cod_salon),
+    CONSTRAINT CHK_DIA_HORARIO_GRUPO CHECK (dia_semana IN ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO')),
+    CONSTRAINT CHK_TIPO_SESION_HG CHECK (tipo_sesion IN ('TEORICA', 'PRACTICA', 'LABORATORIO', 'VIRTUAL'))
+);
+
+-- Crear índices
+CREATE INDEX IDX_HORARIO_GRUPO_DIA ON HORARIO_GRUPO(dia_semana, hora_inicio);
+CREATE INDEX IDX_HORARIO_SALON ON HORARIO_GRUPO(cod_salon, dia_semana);
+
+-- Insertar datos de prueba
+BEGIN
+    FOR grupo IN (SELECT cod_grupo FROM GRUPO WHERE estado_grupo = 'ACTIVO' AND ROWNUM <= 5) LOOP
+        INSERT INTO HORARIO_GRUPO VALUES (
+            SEQ_HORARIO_GRUPO.NEXTVAL, grupo.cod_grupo, 1, 'LUNES', '07:00', '09:00', 'TEORICA', SYSTIMESTAMP
+        );
+        INSERT INTO HORARIO_GRUPO VALUES (
+            SEQ_HORARIO_GRUPO.NEXTVAL, grupo.cod_grupo, 1, 'MIERCOLES', '07:00', '09:00', 'TEORICA', SYSTIMESTAMP
+        );
+    END LOOP;
+    COMMIT;
+END;
+/
+
+PROMPT Tabla HORARIO_GRUPO creada con datos
+EXIT
