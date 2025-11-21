@@ -21,9 +21,21 @@ Write-Host "⚠️  IMPORTANTE: Deja esta ventana abierta mientras uses los endp
 Write-Host "⚠️  Presiona Ctrl+C para detener ORDS" -ForegroundColor Red
 Write-Host ""
 
-Set-Location "C:\Users\murde\Downloads\ords-25.3.1.289.1312"
+
+# Ruta base de instalación de ORDS (ajusta si es necesario)
+$ordsBasePath = "C:\Users\murde\Downloads\ords-25.3.1.289.1312"
+$ordsExePath = "$ordsBasePath\bin\ords.exe"
+$ordsConfigPath = "$ordsBasePath\config"
+$ordsPort = 8080
+
+Set-Location $ordsBasePath
 
 Write-Host "Iniciando servidor..." -ForegroundColor Yellow
 Write-Host ""
 
-.\bin\ords.exe --config .\config serve --port 8080
+if (-Not (Test-Path $ordsExePath)) {
+	Write-Host "ERROR: No se encontró ords.exe en $ordsExePath" -ForegroundColor Red
+	exit 1
+}
+
+& $ordsExePath --config $ordsConfigPath serve --port $ordsPort

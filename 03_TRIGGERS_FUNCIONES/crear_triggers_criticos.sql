@@ -29,7 +29,7 @@ BEGIN
     -- Determinar créditos máximos según nivel de riesgo
     v_creditos_maximos := CASE v_nivel_riesgo
         WHEN 0 THEN 21  -- Sin riesgo
-        WHEN 1 THEN 8   -- Riesgo 1: Promedio < 2.0
+        WHEN 1 THEN 8   --
         WHEN 2 THEN 12  -- Riesgo 2: Perdió 2 materias
         WHEN 3 THEN 8   -- Riesgo 3: Perdió misma materia 3 veces
         WHEN 4 THEN 16  -- Riesgo 4: Promedio < 3.0
@@ -107,11 +107,10 @@ BEGIN
     SELECT COUNT(*)
     INTO v_count
     FROM VENTANA_CALENDARIO
-    WHERE tipo = p_tipo_ventana
-    AND cod_periodo = p_cod_periodo
-    AND estado = 'ACTIVA'
-    AND SYSDATE BETWEEN fecha_inicio AND fecha_fin;
-    
+    WHERE tipo_ventana = p_tipo_ventana
+      AND cod_periodo = p_cod_periodo
+      AND estado_ventana = 'ACTIVA'
+      AND SYSDATE BETWEEN fecha_inicio AND fecha_fin;
     IF v_count > 0 THEN
         RETURN 'SI';
     ELSE
@@ -139,7 +138,6 @@ BEGIN
     INTO v_cod_periodo
     FROM MATRICULA
     WHERE cod_matricula = :NEW.cod_matricula;
-    
     -- Determinar tipo de operación
     IF INSERTING THEN
         v_tipo_operacion := 'MATRICULA';
@@ -148,10 +146,8 @@ BEGIN
     ELSE
         v_tipo_operacion := 'MATRICULA';
     END IF;
-    
     -- Verificar ventana activa
     v_ventana_activa := FN_VERIFICAR_VENTANA_ACTIVA(v_tipo_operacion, v_cod_periodo);
-    
     IF v_ventana_activa = 'NO' THEN
         RAISE_APPLICATION_ERROR(-20002,
             'Operación no permitida. La ventana de ' || v_tipo_operacion || 
@@ -178,16 +174,15 @@ BEGIN
     JOIN HORARIO h1 ON g1.cod_grupo = h1.cod_grupo
     JOIN HORARIO h2 ON h2.cod_grupo = p_cod_grupo
     WHERE dm1.cod_matricula = p_cod_matricula
-    AND dm1.estado_inscripcion IN ('INSCRITO', 'CURSANDO')
-    AND g1.cod_grupo != p_cod_grupo
-    AND h1.dia_semana = h2.dia_semana
-    AND (
+      AND dm1.estado_inscripcion IN ('INSCRITO', 'CURSANDO')
+      AND g1.cod_grupo != p_cod_grupo
+      AND h1.dia_semana = h2.dia_semana
+      AND (
         (h1.hora_inicio BETWEEN h2.hora_inicio AND h2.hora_fin)
         OR (h1.hora_fin BETWEEN h2.hora_inicio AND h2.hora_fin)
         OR (h2.hora_inicio BETWEEN h1.hora_inicio AND h1.hora_fin)
         OR (h2.hora_fin BETWEEN h1.hora_inicio AND h1.hora_fin)
     );
-    
     IF v_count > 0 THEN
         RETURN 'SI';
     ELSE
@@ -235,22 +230,19 @@ FOR EACH ROW
 DECLARE
     v_suma_porcentajes NUMBER;
 BEGIN
-    -- Calcular suma de porcentajes para el mismo grupo
+    -- Calcular suma de porcentajes para la misma asignatura
     SELECT NVL(SUM(porcentaje), 0)
     INTO v_suma_porcentajes
     FROM REGLA_EVALUACION
-    WHERE cod_grupo = :NEW.cod_grupo
-    AND cod_regla_evaluacion != NVL(:NEW.cod_regla_evaluacion, -1);
-    
+    WHERE cod_asignatura = :NEW.cod_asignatura
+      AND cod_regla != NVL(:NEW.cod_regla, -1);
     -- Sumar el porcentaje actual
     v_suma_porcentajes := v_suma_porcentajes + :NEW.porcentaje;
-    
     -- Validar que la suma sea exactamente 100%
     IF v_suma_porcentajes > 100 THEN
         RAISE_APPLICATION_ERROR(-20004,
             'La suma de porcentajes de evaluación excede el 100%. Actual: ' || v_suma_porcentajes || '%');
     END IF;
-    
     -- Si es la última regla, verificar que sume exactamente 100%
     IF v_suma_porcentajes = 100 THEN
         NULL; -- OK
@@ -285,7 +277,7 @@ BEGIN
     END IF;
     
     -- Obtener créditos totales del programa
-    SELECT p.total_creditos
+    SELECT p.creditos_totales
     INTO v_creditos_totales
     FROM ESTUDIANTE e
     JOIN PROGRAMA_ACADEMICO p ON e.cod_programa = p.cod_programa
@@ -300,7 +292,7 @@ BEGIN
     JOIN ASIGNATURA a ON g.cod_asignatura = a.cod_asignatura
     JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
     WHERE m.cod_estudiante = p_cod_estudiante
-    AND nd.resultado = 'APROBADO';
+      AND nd.resultado = 'APROBADO';
     
     -- Calcular porcentaje
     v_porcentaje := (v_creditos_aprobados / v_creditos_totales) * 100;
@@ -315,7 +307,7 @@ BEGIN
     INTO v_tiene_director
     FROM DIRECTOR_TRABAJO_GRADO
     WHERE cod_estudiante = p_cod_estudiante
-    AND estado = 'ACTIVO';
+      AND estado_trabajo = 'EN_PROCESO';
     
     IF v_tiene_director = 0 THEN
         RETURN 'ERROR: Debe tener un director de trabajo de grado asignado';
@@ -412,3 +404,17 @@ PROMPT ============================================================
 PROMPT TRIGGERS CRÍTICOS CREADOS EXITOSAMENTE
 PROMPT ============================================================
 COMMIT;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

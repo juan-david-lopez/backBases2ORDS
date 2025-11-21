@@ -460,3 +460,26 @@ PROMPT '========================================='
 SELECT COUNT(*) AS total_vistas
 FROM user_views
 WHERE view_name LIKE 'VW_%';
+CREATE OR REPLACE VIEW VW_MATRICULAS_POR_PERIODO AS
+SELECT 
+    pe.cod_periodo,
+    pe.nombre_periodo,
+    pe.anio,
+    pe.estado_periodo,
+    pe.periodo, -- <--- Agrega esta columna
+    COUNT(DISTINCT m.cod_matricula) AS total_matriculas,
+    COUNT(DISTINCT m.cod_estudiante) AS total_estudiantes_matriculados,
+    COUNT(DISTINCT dm.cod_detalle_matricula) AS total_inscripciones_asignaturas,
+    SUM(m.total_creditos) AS total_creditos_matriculados,
+    ROUND(AVG(m.total_creditos), 2) AS promedio_creditos_estudiante,
+    SUM(m.valor_matricula) AS ingresos_matricula,
+    COUNT(DISTINCT CASE WHEN m.estado_matricula = 'ACTIVA' THEN m.cod_matricula END) AS matriculas_activas,
+    COUNT(DISTINCT CASE WHEN m.estado_matricula = 'CANCELADA' THEN m.cod_matricula END) AS matriculas_canceladas,
+    COUNT(DISTINCT CASE WHEN m.tipo_matricula = 'ORDINARIA' THEN m.cod_matricula END) AS matriculas_ordinarias,
+    COUNT(DISTINCT CASE WHEN m.tipo_matricula = 'EXTRAORDINARIA' THEN m.cod_matricula END) AS matriculas_extraordinarias
+FROM PERIODO_ACADEMICO pe
+LEFT JOIN MATRICULA m ON pe.cod_periodo = m.cod_periodo
+LEFT JOIN DETALLE_MATRICULA dm ON m.cod_matricula = dm.cod_matricula
+GROUP BY pe.cod_periodo, pe.nombre_periodo, pe.anio, pe.estado_periodo, pe.periodo
+ORDER BY pe.anio DESC, pe.periodo DESC;
+COMMENT ON TABLE VW_MATRICULAS_POR_PERIODO IS 'Consolidado de matrículas por periodo académico';
