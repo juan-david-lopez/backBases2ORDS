@@ -48,3 +48,4 @@ EXCEPTION
     RAISE;
 END;
 /
+SELECT constraint_name, search_condition FROM user_constraints WHERE table_name='NOTA_DEFINITIVA' AND constraint_type='C';

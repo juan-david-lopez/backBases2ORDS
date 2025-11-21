@@ -1,128 +1,25 @@
 -- =====================================================
--- API DE REGISTRO DE MATERIAS - VERSIÓN CORREGIDA
--- Archivo: 06_registro_materias_api_FIXED.sql
--- Propósito: Endpoints para autoservicio de matrícula estudiantil
--- Ejecutar como: ACADEMICO
--- CORRECCIONES: Usa nombres de columnas reales de la BD
--- =====================================================
-
-SET SERVEROUTPUT ON
-SET DEFINE OFF
-
-PROMPT =====================================================
-PROMPT Creando módulo REGISTRO DE MATERIAS (CORREGIDO)
-PROMPT =====================================================
-
--- =====================================================
--- MÓDULO: registro_materias
--- =====================================================
-
-BEGIN
-    ORDS.DEFINE_MODULE(
-        p_module_name    => 'registro_materias',
-        p_base_path      => '/registro-materias/',
-        p_items_per_page => 0,
-        p_status         => 'PUBLISHED',
-        p_comments       => 'Módulo de inscripción de materias para estudiantes'
-    );
-    COMMIT;
-    DBMS_OUTPUT.PUT_LINE('✓ Módulo registro_materias creado');
-END;
-/
-
--- =====================================================
--- ENDPOINT 1: GET /disponibles/:cod_estudiante
--- Descripción: Asignaturas disponibles para inscribir
--- CORRECCIONES: Usa HISTORIAL_RIESGO, estado_estudiante, estado_inscripcion
--- =====================================================
-
-BEGIN
-    ORDS.DEFINE_TEMPLATE(
-        p_module_name => 'registro_materias',
-        p_pattern     => 'disponibles/:cod_estudiante'
-    );
-    
     ORDS.DEFINE_HANDLER(
         p_module_name => 'registro_materias',
-        p_pattern     => 'disponibles/:cod_estudiante',
-        p_method      => 'GET',
+        p_pattern     => 'inscribir',
+        p_method      => 'POST',
         p_source_type => 'plsql/block',
         p_source      => q'![
 DECLARE
-    v_cod_programa NUMBER;
-    v_nivel_riesgo VARCHAR2(20) := 'BAJO';
-    v_creditos_max NUMBER;
-    v_creditos_actuales NUMBER;
+    v_status NUMBER;
+    v_response CLOB;
 BEGIN
-    -- Obtener programa y nivel de riesgo del estudiante
-    SELECT e.cod_programa INTO v_cod_programa
-    FROM ESTUDIANTE e
-    WHERE e.cod_estudiante = :cod_estudiante;
-    
-    -- Obtener nivel de riesgo más reciente
-    BEGIN
-        SELECT nivel_riesgo INTO v_nivel_riesgo
-        FROM (
-            SELECT nivel_riesgo 
-            FROM HISTORIAL_RIESGO 
-            WHERE cod_estudiante = :cod_estudiante
-            ORDER BY fecha_deteccion DESC
-        )
-        WHERE ROWNUM = 1;
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            v_nivel_riesgo := 'BAJO';
-    END;
-    
-    -- Determinar créditos máximos según nivel de riesgo
-    v_creditos_max := CASE v_nivel_riesgo
-        WHEN 'ALTO' THEN 12
-        WHEN 'MEDIO' THEN 16
-        ELSE 20
-    END;
-    
-    -- Calcular créditos ya matriculados en periodo activo
-    SELECT COALESCE(SUM(a.creditos), 0)
-    INTO v_creditos_actuales
-    FROM DETALLE_MATRICULA dm
-    JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
-    JOIN GRUPO g ON dm.cod_grupo = g.cod_grupo
-    JOIN ASIGNATURA a ON g.cod_asignatura = a.cod_asignatura
-    JOIN PERIODO_ACADEMICO pa ON m.cod_periodo = pa.cod_periodo
-    WHERE m.cod_estudiante = :cod_estudiante
-    AND pa.estado_periodo = 'ACTIVO'
-    AND dm.estado_inscripcion = 'INSCRITO';
-    
-    -- Retornar asignaturas disponibles
-    HTP.PRINT('[');
-    FOR rec IN (
-        SELECT 
-            a.cod_asignatura,
-            a.nombre_asignatura,
-            a.creditos,
-            a.nivel,
-            -- Prerequisitos como lista
-            (SELECT LISTAGG(pre.cod_asignatura_prerequisito, ', ') 
-             WITHIN GROUP (ORDER BY pre.cod_asignatura_prerequisito)
-             FROM PRERREQUISITO pre
-             WHERE pre.cod_asignatura = a.cod_asignatura) as prerequisitos,
-            -- Verificar si cumple prerequisitos
-            CASE 
-                WHEN NOT EXISTS (
-                    SELECT 1 FROM PRERREQUISITO p
-                    WHERE p.cod_asignatura = a.cod_asignatura
-                    AND NOT EXISTS (
-                        SELECT 1 FROM NOTA_DEFINITIVA nd
-                        JOIN DETALLE_MATRICULA dm_nd ON nd.cod_detalle_matricula = dm_nd.cod_detalle_matricula
-                        JOIN MATRICULA m_nd ON dm_nd.cod_matricula = m_nd.cod_matricula
-                        JOIN GRUPO g_nd ON dm_nd.cod_grupo = g_nd.cod_grupo
-                        WHERE m_nd.cod_estudiante = :cod_estudiante
-                        AND g_nd.cod_asignatura = p.cod_asignatura_prerequisito
-                        AND nd.resultado = 'APROBADO'
-                    )
-                ) THEN 'SI'
-                ELSE 'NO'
-            END as cumple_prerequisitos,
+    -- Delegar parsing e inserción al paquete puente
+    PKG_ORDS_BRIDGE.inscribir_from_json(:body, v_status, v_response);
+    :status_code := v_status;
+    HTP.PRINT(v_response);
+EXCEPTION
+    WHEN OTHERS THEN
+        :status_code := 500;
+        HTP.PRINT('{"error":"' || REPLACE(SQLERRM, '"', '\"') || '"}');
+END;
+]!'
+    );
             -- Verificar si ya está inscrito
             CASE 
                 WHEN EXISTS (
@@ -292,90 +189,21 @@ BEGIN
         p_module_name => 'registro_materias',
         p_pattern     => 'inscribir'
     );
-    
+
     ORDS.DEFINE_HANDLER(
         p_module_name => 'registro_materias',
         p_pattern     => 'inscribir',
         p_method      => 'POST',
         p_source_type => 'plsql/block',
         p_source      => q'![
-DECLARE
-    v_cod_estudiante VARCHAR2(20);
-    v_cod_grupo NUMBER;
-    v_cod_matricula NUMBER;
-    v_cod_periodo VARCHAR2(10);
-    v_cod_detalle NUMBER;
 BEGIN
-    -- Parsear JSON del body
-    v_cod_estudiante := JSON_VALUE(:body, '$.cod_estudiante');
-    v_cod_grupo := JSON_VALUE(:body, '$.cod_grupo');
-    
-    -- Obtener periodo activo del grupo
-    SELECT cod_periodo INTO v_cod_periodo
-    FROM GRUPO
-    WHERE cod_grupo = v_cod_grupo;
-    
-    -- Verificar si ya existe matrícula para el estudiante en este periodo
-    BEGIN
-        SELECT cod_matricula INTO v_cod_matricula
-        FROM MATRICULA
-        WHERE cod_estudiante = v_cod_estudiante
-        AND cod_periodo = v_cod_periodo;
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            -- Crear nueva matrícula usando el paquete
-            PKG_MATRICULA.crear_matricula(
-                p_cod_estudiante => v_cod_estudiante,
-                p_cod_periodo => v_cod_periodo,
-                p_tipo_matricula => 'ORDINARIA',
-                p_valor_matricula => NULL,
-                p_cod_matricula => v_cod_matricula
-            );
-    END;
-    
-    -- Inscribir usando el paquete (incluye todas las validaciones)
-    PKG_MATRICULA.inscribir_asignatura(
-        p_cod_matricula => v_cod_matricula,
-        p_cod_grupo => v_cod_grupo
-    );
-    
-    :status_code := 201;
-    HTP.PRINT(JSON_OBJECT(
-        'success' VALUE true,
-        'message' VALUE 'Inscripción exitosa',
-        'cod_matricula' VALUE v_cod_matricula
-    ));
-    
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        IF SQLCODE = -20206 THEN
-            :status_code := 403;
-            HTP.PRINT('{"error": "Ventana de matrícula cerrada"}');
-        ELSIF SQLCODE = -20202 THEN
-            :status_code := 409;
-            HTP.PRINT('{"error": "No hay cupos disponibles"}');
-        ELSIF SQLCODE = -20207 THEN
-            :status_code := 403;
-            HTP.PRINT('{"error": "Excede el límite de créditos permitidos"}');
-        ELSIF SQLCODE = -20203 THEN
-            :status_code := 400;
-            HTP.PRINT('{"error": "No cumple los prerrequisitos"}');
-        ELSIF SQLCODE = -20204 THEN
-            :status_code := 409;
-            HTP.PRINT('{"error": "Conflicto de horario"}');
-        ELSIF SQLCODE = -20201 THEN
-            :status_code := 409;
-            HTP.PRINT('{"error": "Ya está inscrito en esta asignatura"}');
-        ELSE
-            :status_code := 500;
-            HTP.PRINT('{"error": "' || REPLACE(SQLERRM, '"', '\"') || '"}');
-        END IF;
+  PKG_ORDS_BRIDGE.ords_inscribir_handler;
 END;
 ]!'
     );
+
     COMMIT;
-    DBMS_OUTPUT.PUT_LINE('✓ POST /inscribir creado');
+    DBMS_OUTPUT.PUT_LINE('✓ POST /inscribir (proc) creado');
 END;
 /
 
@@ -628,6 +456,13 @@ END;
 END;
 /
 
+SELECT JSON_VALUE('{"cod_estudiante":"202500123","cod_grupo":301}', '$.cod_estudiante') FROM DUAL;
+SELECT jt.cod_estudiante, jt.cod_grupo
+FROM JSON_TABLE('{"cod_estudiante":"202500123","cod_grupo":301}',
+                '$'
+                COLUMNS (cod_estudiante VARCHAR2(50) PATH '$.cod_estudiante',
+                         cod_grupo     NUMBER       PATH '$.cod_grupo')
+               ) jt;
 PROMPT =====================================================
 PROMPT Módulo registro_materias completado
 PROMPT =====================================================

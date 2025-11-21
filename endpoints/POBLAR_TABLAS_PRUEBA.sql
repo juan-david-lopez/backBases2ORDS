@@ -324,7 +324,7 @@ END pkg_poblar_academico;
 commit;
 select * from ACADEMICO.ASIGNATURA; 
 select * from Academico.DOCENTE;
-select * from Academico.ESTUDIANTE;
+select * from Academico.ESTUDIANTE; 
 select * from Academico.HISTORIAL_RIESGO;
 select * from Academico.MATRICULA;
 select * from Academico.PERIODO_ACADEMICO;
@@ -354,3 +354,9 @@ SELECT cod_ventana_calendario, cod_periodo, tipo_ventana, estado_ventana,
        TO_CHAR(fecha_inicio,'DD/MM/YYYY') fecha_inicio, TO_CHAR(fecha_fin,'DD/MM/YYYY') fecha_fin
 FROM VENTANA_CALENDARIO
 WHERE tipo_ventana = 'MATRICULA' AND cod_periodo IN ('2025-1','2025-2');
+
+
+INSERT INTO nota_definitiva (cod_detalle_matricula, nota_final, resultado, fecha_calculo, fecha_registro)
+VALUES (:COD, 2.5, 'PERDIDA', SYSDATE, SYSTIMESTAMP);
+COMMIT;
+SELECT cod_detalle_matricula, estado_inscripcion FROM detalle_matricula WHERE cod_detalle_matricula = :COD;
