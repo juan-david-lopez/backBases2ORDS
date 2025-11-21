@@ -392,7 +392,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_MATRICULA AS
         INNER JOIN GRUPO g ON dm.cod_grupo = g.cod_grupo
         INNER JOIN ASIGNATURA a ON g.cod_asignatura = a.cod_asignatura
         WHERE dm.cod_matricula = p_cod_matricula
-        AND dm.estado_inscripcion IN ('INSCRITO', 'APROBADO', 'REPROBADO');
+        AND dm.estado_inscripcion IN ('INSCRITO', 'APROBADO', 'REPROBADO', 'PERDIDA');
         
         RETURN v_total_creditos;
     END calcular_creditos_matriculados;
@@ -958,7 +958,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_CALIFICACION AS
         IF v_nota_final >= 3.0 THEN
             v_resultado := 'APROBADO';
         ELSE
-            v_resultado := 'REPROBADO';
+            v_resultado := 'PERDIDA';
         END IF;
         
         -- Verificar si ya existe registro
@@ -1052,7 +1052,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_CALIFICACION AS
             INNER JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
             INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
             WHERE m.cod_estudiante = p_cod_estudiante
-            AND nd.resultado IN ('APROBADO', 'REPROBADO');
+            AND nd.resultado IN ('APROBADO', 'REPROBADO', 'PERDIDA');
         ELSE
             -- Promedio por periodo
             SELECT ROUND(AVG(nd.nota_final), 2)
@@ -1062,7 +1062,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_CALIFICACION AS
             INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
             WHERE m.cod_estudiante = p_cod_estudiante
             AND m.cod_periodo = p_cod_periodo
-            AND nd.resultado IN ('APROBADO', 'REPROBADO');
+            AND nd.resultado IN ('APROBADO', 'REPROBADO', 'PERDIDA');
         END IF;
         
         RETURN NVL(v_promedio, 0);
@@ -1190,13 +1190,13 @@ CREATE OR REPLACE PACKAGE BODY PKG_RIESGO_ACADEMICO AS
         END;
         
         -- Calcular promedio general
-        SELECT NVL(ROUND(AVG(nd.nota_final), 2), 0)
+            SELECT NVL(ROUND(AVG(nd.nota_final), 2), 0)
         INTO v_promedio
         FROM NOTA_DEFINITIVA nd
         INNER JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
         INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
         WHERE m.cod_estudiante = p_cod_estudiante
-        AND nd.resultado IN ('APROBADO', 'REPROBADO');
+        AND nd.resultado IN ('APROBADO', 'REPROBADO', 'PERDIDA');
         
         -- Contar materias reprobadas
         SELECT NVL(COUNT(*), 0)
@@ -1205,7 +1205,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_RIESGO_ACADEMICO AS
         INNER JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
         INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
         WHERE m.cod_estudiante = p_cod_estudiante
-        AND nd.resultado = 'REPROBADO';
+        AND nd.resultado IN ('REPROBADO', 'PERDIDA');
         
         -- Calcular nivel de riesgo
         v_nivel_riesgo := calcular_nivel_riesgo(v_promedio, v_materias_reprobadas);

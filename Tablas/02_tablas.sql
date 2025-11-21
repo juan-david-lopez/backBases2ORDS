@@ -255,7 +255,7 @@ CREATE TABLE DETALLE_MATRICULA (
     cod_matricula NUMBER(12) NOT NULL,
     cod_grupo NUMBER(12) NOT NULL,
     fecha_inscripcion DATE DEFAULT SYSDATE,
-    estado_inscripcion VARCHAR2(20) DEFAULT 'INSCRITO' CHECK (estado_inscripcion IN ('INSCRITO', 'RETIRADO', 'APROBADO', 'REPROBADO', 'VALIDADO')),
+    estado_inscripcion VARCHAR2(20) DEFAULT 'INSCRITO' CHECK (estado_inscripcion IN ('INSCRITO', 'RETIRADO', 'APROBADO', 'REPROBADO', 'PERDIDA', 'VALIDADO')),
     fecha_retiro DATE,
     motivo_retiro VARCHAR2(200),
     fecha_registro TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -333,7 +333,7 @@ CREATE TABLE NOTA_DEFINITIVA (
     cod_nota_definitiva NUMBER(15) GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     cod_detalle_matricula NUMBER(15) NOT NULL UNIQUE,
     nota_final NUMBER(3,1) CHECK (nota_final >= 0 AND nota_final <= 5),
-    resultado VARCHAR2(15) CHECK (resultado IN ('APROBADO', 'REPROBADO', 'PENDIENTE', 'VALIDADO')),
+    resultado VARCHAR2(15) CHECK (resultado IN ('APROBADO', 'REPROBADO', 'PERDIDA', 'PENDIENTE', 'VALIDADO')),
     fecha_calculo DATE DEFAULT SYSDATE,
     fecha_registro TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT FK_NOTA_DEF_DETALLE FOREIGN KEY (cod_detalle_matricula) REFERENCES DETALLE_MATRICULA(cod_detalle_matricula) ON DELETE CASCADE

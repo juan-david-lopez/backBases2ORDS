@@ -215,8 +215,8 @@ DECLARE
     v_nivel_riesgo VARCHAR2(10);
     v_riesgo_existente NUMBER;
 BEGIN
-    -- Solo procesar si la nota es reprobada o muy baja
-    IF :NEW.resultado = 'REPROBADO' OR :NEW.nota_final < 3.5 THEN
+    -- Solo procesar si la nota es reprobada/perdida o muy baja
+    IF :NEW.resultado IN ('REPROBADO','PERDIDA') OR :NEW.nota_final < 3.5 THEN
         
         -- Obtener información del estudiante y periodo
         SELECT m.cod_estudiante, m.cod_periodo
@@ -234,7 +234,7 @@ BEGIN
             INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
             WHERE m.cod_estudiante = v_cod_estudiante
             AND m.cod_periodo = v_cod_periodo
-            AND nd.resultado IN ('APROBADO', 'REPROBADO');
+            AND nd.resultado IN ('APROBADO', 'REPROBADO', 'PERDIDA');
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
                 v_promedio_periodo := 0;
@@ -248,7 +248,7 @@ BEGIN
         INNER JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
         WHERE m.cod_estudiante = v_cod_estudiante
         AND m.cod_periodo = v_cod_periodo
-        AND nd.resultado = 'REPROBADO';
+        AND nd.resultado IN ('REPROBADO','PERDIDA');
         
         -- Determinar tipo y nivel de riesgo
         IF v_promedio_periodo < 2.5 THEN
@@ -813,7 +813,7 @@ BEGIN
         IF v_nota_final >= 3.0 THEN
             v_estado_nota := 'APROBADO';
         ELSIF v_porcentaje_total >= 100 THEN
-            v_estado_nota := 'REPROBADO';
+            v_estado_nota := 'PERDIDA';
         ELSE
             v_estado_nota := 'EN_PROCESO';
         END IF;

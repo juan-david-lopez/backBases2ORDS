@@ -271,7 +271,7 @@ BEGIN
                                             JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
                                             JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
                                             WHERE m.cod_estudiante = e.cod_estudiante
-                                            AND nd.resultado IN (''APROBADO'', ''REPROBADO'')
+                                            AND nd.resultado IN (''APROBADO'', ''REPROBADO'', ''PERDIDA'')
                                           ) as promedio_acumulado,
                                           (SELECT COUNT(*)
                                             FROM NOTA_DEFINITIVA nd
@@ -285,7 +285,7 @@ BEGIN
                                             JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
                                             JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
                                             WHERE m.cod_estudiante = e.cod_estudiante
-                                            AND nd.resultado = ''REPROBADO''
+                                            AND nd.resultado IN (''REPROBADO'', ''PERDIDA'')
                                           ) as asignaturas_reprobadas,
                                           (SELECT SUM(a.creditos)
                                             FROM NOTA_DEFINITIVA nd

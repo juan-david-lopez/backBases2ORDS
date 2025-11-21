@@ -564,7 +564,7 @@ BEGIN
     -- Aprobados y reprobados
     SELECT 
         COUNT(CASE WHEN nd.resultado = 'APROBADO' THEN 1 END),
-        COUNT(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 END)
+        COUNT(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 END)
     INTO v_aprobados, v_reprobados
     FROM NOTA_DEFINITIVA nd
     JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula

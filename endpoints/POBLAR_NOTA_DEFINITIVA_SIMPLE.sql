@@ -29,7 +29,7 @@ BEGIN
       v_cod_detalle := r.cod_detalle_matricula;
       v_nota := ROUND(DBMS_RANDOM.VALUE(2.0, 5.0) * 10) / 10; -- 1 decimal
       INSERT INTO nota_definitiva (cod_detalle_matricula, nota_final, resultado, fecha_calculo, fecha_registro)
-      VALUES (v_cod_detalle, v_nota, CASE WHEN v_nota >= 3 THEN 'APROBADO' ELSE 'REPROBADO' END, SYSDATE, SYSTIMESTAMP);
+      VALUES (v_cod_detalle, v_nota, CASE WHEN v_nota >= 3 THEN 'APROBADO' ELSE 'PERDIDA' END, SYSDATE, SYSTIMESTAMP);
       DBMS_OUTPUT.PUT_LINE('Inserted NOTA_DEFINITIVA for detalle='||v_cod_detalle||' nota='||v_nota);
     EXCEPTION WHEN OTHERS THEN
       DBMS_OUTPUT.PUT_LINE('ERROR insertar NOTA_DEFINITIVA detalle='||v_cod_detalle||' - '||SQLERRM);

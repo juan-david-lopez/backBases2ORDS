@@ -194,7 +194,7 @@ SELECT
     ROUND(MIN(nd.nota_final), 2) AS nota_minima,
     ROUND(MAX(nd.nota_final), 2) AS nota_maxima,
     COUNT(CASE WHEN nd.resultado = 'APROBADO' THEN 1 END) AS total_aprobados,
-    COUNT(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 END) AS total_reprobados,
+    COUNT(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 END) AS total_reprobados,
     ROUND(COUNT(CASE WHEN nd.resultado = 'APROBADO' THEN 1 END) * 100.0 / 
           NULLIF(COUNT(nd.cod_nota_definitiva), 0), 2) AS porcentaje_aprobacion,
     ROUND(COUNT(DISTINCT CASE WHEN dm.estado_inscripcion = 'RETIRADO' THEN dm.cod_detalle_matricula END) * 100.0 / 

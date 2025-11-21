@@ -200,7 +200,7 @@ BEGIN
         IF v_nota_final >= 3.0 THEN
             v_estado_nota := 'APROBADO';
         ELSIF v_porcentaje_total >= 100 THEN
-            v_estado_nota := 'REPROBADO';
+            v_estado_nota := 'PERDIDA';
         ELSE
             v_estado_nota := 'EN_PROCESO';
         END IF;
@@ -279,7 +279,7 @@ PROMPT ''
 PROMPT '3. TRG_ACUMULAR_NOTA_DEFINITIVA'
 PROMPT '   - Calcula automaticamente la nota definitiva'
 PROMPT '   - Acumula notas ponderadas por porcentaje'
-PROMPT '   - Actualiza estado: PENDIENTE, EN_PROCESO, APROBADO, REPROBADO'
+PROMPT '   - Actualiza estado: PENDIENTE, EN_PROCESO, APROBADO, PERDIDA'
 PROMPT ''
 
 -- Verificar que los triggers se crearon correctamente

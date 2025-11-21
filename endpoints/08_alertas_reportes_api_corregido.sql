@@ -75,7 +75,7 @@ BEGIN
             (SELECT COUNT(*)
              FROM NOTA_DEFINITIVA
              WHERE cod_estudiante = e.cod_estudiante
-             AND resultado = 'REPROBADO') as asignaturas_reprobadas,
+                         AND resultado IN ('REPROBADO','PERDIDA')) as asignaturas_reprobadas,
             -- Créditos actuales
             (SELECT COALESCE(SUM(a.creditos), 0)
              FROM DETALLE_MATRICULA dm
@@ -172,7 +172,7 @@ BEGIN
         (SELECT COUNT(*)
          FROM NOTA_DEFINITIVA
          WHERE cod_estudiante = :cod_estudiante
-         AND resultado = 'REPROBADO')
+                 AND resultado IN ('REPROBADO','PERDIDA')
     INTO v_promedio, v_reprobadas
     FROM DUAL;
 

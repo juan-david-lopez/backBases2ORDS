@@ -554,7 +554,7 @@ BEGIN
     -- Estadísticas de notas
     SELECT 
         COUNT(CASE WHEN nd.resultado = 'APROBADO' THEN 1 END),
-        COUNT(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 END),
+        COUNT(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 END),
         COALESCE(AVG(nd.nota_final), 0),
         COALESCE(MAX(nd.nota_final), 0),
         COALESCE(MIN(nd.nota_final), 0)

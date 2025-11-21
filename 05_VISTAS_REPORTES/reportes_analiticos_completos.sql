@@ -140,10 +140,10 @@ SELECT
     COUNT(dm.cod_detalle_matricula) as asignaturas_inscritas,
     SUM(a.creditos) as creditos_periodo,
     SUM(CASE WHEN nd.resultado = 'APROBADO' THEN a.creditos ELSE 0 END) as creditos_aprobados,
-    SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN a.creditos ELSE 0 END) as creditos_reprobados,
+    SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN a.creditos ELSE 0 END) as creditos_reprobados,
     ROUND(AVG(nd.nota_final), 2) as promedio_periodo,
     SUM(CASE WHEN nd.resultado = 'APROBADO' THEN 1 ELSE 0 END) as materias_aprobadas,
-    SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 ELSE 0 END) as materias_reprobadas
+    SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 ELSE 0 END) as materias_reprobadas
 FROM ESTUDIANTE e
 JOIN MATRICULA m ON e.cod_estudiante = m.cod_estudiante
 JOIN DETALLE_MATRICULA dm ON m.cod_matricula = dm.cod_matricula
@@ -194,7 +194,7 @@ SELECT
     COUNT(DISTINCT dm.cod_estudiante) as total_estudiantes,
     ROUND(AVG(nd.nota_final), 2) as promedio_notas,
     SUM(CASE WHEN nd.resultado = 'APROBADO' THEN 1 ELSE 0 END) as estudiantes_aprobados,
-    SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 ELSE 0 END) as estudiantes_reprobados,
+    SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 ELSE 0 END) as estudiantes_reprobados,
     ROUND((SUM(CASE WHEN nd.resultado = 'APROBADO' THEN 1 ELSE 0 END) / 
            NULLIF(COUNT(nd.cod_nota_definitiva), 0)) * 100, 2) as tasa_aprobacion,
     SUM(CASE WHEN dm.estado_inscripcion = 'RETIRADO' THEN 1 ELSE 0 END) as estudiantes_retirados,
@@ -219,7 +219,7 @@ SELECT * FROM (
         SUM(CASE WHEN nd.resultado = 'APROBADO' THEN a.creditos ELSE 0 END) as creditos_aprobados,
         COUNT(DISTINCT m.cod_periodo) as semestres_cursados,
         SUM(CASE WHEN nd.resultado = 'APROBADO' THEN 1 ELSE 0 END) as materias_aprobadas,
-        SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 ELSE 0 END) as materias_reprobadas,
+        SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 ELSE 0 END) as materias_reprobadas,
         ROW_NUMBER() OVER (PARTITION BY p.cod_programa ORDER BY AVG(nd.nota_final) DESC) as ranking
     FROM ESTUDIANTE e
     JOIN PROGRAMA_ACADEMICO p ON e.cod_programa = p.cod_programa
@@ -243,8 +243,8 @@ SELECT
     a.tipo_asignatura,
     a.creditos,
     COUNT(nd.cod_nota_definitiva) as total_evaluaciones,
-    SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 ELSE 0 END) as total_reprobados,
-    ROUND((SUM(CASE WHEN nd.resultado = 'REPROBADO' THEN 1 ELSE 0 END) / 
+    SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 ELSE 0 END) as total_reprobados,
+    ROUND((SUM(CASE WHEN nd.resultado IN ('REPROBADO','PERDIDA') THEN 1 ELSE 0 END) / 
            NULLIF(COUNT(nd.cod_nota_definitiva), 0)) * 100, 2) as porcentaje_reprobacion,
     ROUND(AVG(nd.nota_final), 2) as nota_promedio,
     COUNT(DISTINCT g.cod_docente) as docentes_diferentes,

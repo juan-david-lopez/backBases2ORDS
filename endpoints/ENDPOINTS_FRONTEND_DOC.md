@@ -1,62 +1,86 @@
 # Documentación de Endpoints ORDS para el Frontend
 
-A continuación se describe cada endpoint disponible, qué recibe, qué devuelve y qué acción realiza. Útil para desarrolladores frontend.
+A continuación se describe cada endpoint disponible, qué recibe, qué devuelve (código HTTP, headers y body) y qué acción realiza. Útil para desarrolladores frontend.
+
+---
+
+## Convención de Autenticación
+- Los endpoints protegidos esperan el header `Authorization: Bearer <token>`.
+- El endpoint de login devuelve el token dentro del body JSON bajo la propiedad `token`. El cliente puede opcionalmente establecerlo en un header `Authorization` para llamadas subsecuentes.
+- Respuestas de error devuelven JSON con al menos `{ "success": false, "message": "..." }` y códigos HTTP apropiados (401, 404, 400, 500).
 
 ---
 
 ## 1. Autenticación
 
 ### POST /auth/login
-- **Recibe:**
+- URL: `/ords/auth/login` (módulo `auth`, POST)
+- Headers: `Content-Type: application/json`
+- Body (JSON):
   ```json
   {
     "email": "usuario@universidad.edu",
     "password": "clave"
   }
   ```
-- **Devuelve:**
-  - Éxito:
-    ```json
-    {
-      "success": true,
-      "message": "Autenticación exitosa",
-      "token": "Bearer_...",
-      "role": "ESTUDIANTE|DOCENTE|ADMIN",
-      "usuario": {
-        "cod_usuario": ..., 
-        "username": "usuario@universidad.edu",
-        "tipo_usuario": "...",
-        "cod_referencia": "...",
-        "nombre_completo": "..."
+- Respuestas:
+  - 200 OK (éxito):
+    - Headers: `Content-Type: application/json`
+    - Body:
+      ```json
+      {
+        "success": true,
+        "message": "Autenticación exitosa",
+        "token": "Bearer_<valor>",
+        "role": "ESTUDIANTE|DOCENTE|ADMINISTRADOR|REGISTRO",
+        "usuario": {
+          "cod_usuario": 123,
+          "username": "usuario@universidad.edu",
+          "tipo_usuario": "ESTUDIANTE",
+          "cod_referencia": "202500001",
+          "nombre_completo": "Juan Perez"
+        }
       }
-    }
-    ```
-  - Error:
-    ```json
-    {
-      "success": false,
-      "message": "Usuario o contraseña incorrectos",
-      "role": null
-    }
-    ```
-- **Acción:** Verifica credenciales y devuelve token y datos del usuario.
+      ```
+  - 401 Unauthorized (credenciales inválidas) — Body con `success:false` y `message` explicando el error.
+- Acción: verifica credenciales y devuelve token + datos del usuario. El frontend debe guardar `token` y enviarlo en `Authorization` para endpoints protegidos.
+
+  **Ejemplo real (respuesta raw observada desde Postman/Kong):**
+
+  Headers (respuesta):
+  - `Content-Type: application/json`
+  - `Transfer-Encoding: chunked`
+
+  Body (JSON):
+  ```json
+  {"success": true, "message": "Autenticación exitosa", "token": "Bearer_281_20251120230817", "role": "ESTUDIANTE", "usuario": {"cod_usuario":281, "username":"est1@correo.com", "tipo_usuario":"ESTUDIANTE", "cod_referencia":"202500001", "nombre_completo":"Nombre1 Apellido1"}}
+  ```
+
+  - Status HTTP observado: `200 OK`
+  - Nota: el token se devuelve en el body bajo la propiedad `token`. Para llamadas protegidas, el frontend debe enviar:
+
+    Header: `Authorization: Bearer_281_20251120230817`
+
+    (o más genérico: `Authorization: Bearer <token>`)
+
+  - Consejo: guardar `token` en memoria segura (no en localStorage sin protección) y añadirlo a cada request protegida en el header `Authorization`.
 
 ---
 
 ## 2. Estudiantes
 
 ### GET /estudiantes/
-- **Recibe:** Nada
-- **Devuelve:** Listado de estudiantes (JSON array)
-- **Acción:** Lista todos los estudiantes registrados.
+- URL: `/ords/estudiantes/` (GET)
+- Headers: `Authorization: Bearer <token>` (si el endpoint está protegido)
+- Devuelve 200 OK con body `[{...}, {...}]` (array de estudiantes).
 
 ### GET /estudiantes/:codigo
-- **Recibe:** Nada
-- **Devuelve:** Datos completos de un estudiante
-- **Acción:** Obtiene los datos de un estudiante por código.
+- URL params: `:codigo` = `cod_estudiante`
+- Headers: `Authorization: Bearer <token>`
+- Devuelve 200 OK con objeto JSON del estudiante, o 404 si no existe.
 
 ### POST /estudiantes/
-- **Recibe:**
+- Body JSON (ejemplo):
   ```json
   {
     "cod_programa": 1,
@@ -75,169 +99,80 @@ A continuación se describe cada endpoint disponible, qué recibe, qué devuelve
     "fecha_ingreso": "2021-01-15"
   }
   ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Estudiante creado exitosamente",
-    "cod_estudiante": "..."
-  }
-  ```
-- **Acción:** Crea un nuevo estudiante.
+- Respuestas:
+  - 201 Created / 200 OK: `{ "success": true, "message": "Estudiante creado exitosamente", "cod_estudiante": "..." }`
+  - 400 Bad Request: JSON con `success:false` y detalle del error.
 
 ### PUT /estudiantes/:codigo
-- **Recibe:**
-  ```json
-  {
-    "correo_institucional": "nuevo@universidad.edu",
-    "correo_personal": "nuevo@gmail.com",
-    "telefono": "3007654321",
-    "direccion": "Calle 456",
-    "estado_estudiante": "ACTIVO"
-  }
-  ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Estudiante actualizado exitosamente"
-  }
-  ```
-- **Acción:** Actualiza los datos de un estudiante.
+- Body JSON con campos a actualizar. Devuelve 200 OK con `{ "success": true, "message": "Estudiante actualizado exitosamente" }`.
 
 ### GET /estudiantes/:codigo/matriculas
-- **Recibe:** Nada
-- **Devuelve:** Listado de matrículas del estudiante
-- **Acción:** Lista todas las matrículas de un estudiante.
+- Devuelve 200 OK con array de matrículas del estudiante.
 
 ---
 
 ## 3. Matrículas
 
 ### POST /matriculas/
-- **Recibe:**
+- Body ejemplo:
   ```json
   {
     "cod_estudiante": "202500002",
-    "cod_periodo": "2025A"
+    "cod_periodo": "2025-1"
   }
   ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Matrícula creada exitosamente",
-    "cod_matricula": "..."
-  }
-  ```
-- **Acción:** Crea una matrícula para un estudiante en un periodo.
+- Respuestas:
+  - 201 Created: `{ "success": true, "message": "Matrícula creada exitosamente", "cod_matricula": 123 }`
+  - 400 / 409: en caso de conflicto o ventana de matrícula no activa.
 
 ### POST /matriculas/:cod_matricula/asignaturas
-- **Recibe:**
-  ```json
-  {
-    "cod_grupo": 101
-  }
-  ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Asignatura agregada exitosamente"
-  }
-  ```
-- **Acción:** Agrega una asignatura (grupo) a la matrícula.
+- Body: `{ "cod_grupo": 101 }` — agrega un `DETALLE_MATRICULA`.
+- Respuesta: 200 OK `{ "success": true, "message": "Asignatura agregada exitosamente" }`.
 
 ### GET /matriculas/:cod_matricula
-- **Recibe:** Nada
-- **Devuelve:** Detalle completo de la matrícula (incluye asignaturas)
-- **Acción:** Obtiene los datos de una matrícula específica.
+- Devuelve detalle completo (matrícula + lista de asignaturas inscritas).
 
 ### PUT /matriculas/:cod_matricula/estado
-- **Recibe:**
-  ```json
-  {
-    "nuevo_estado": "ACTIVO"
-  }
-  ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Estado actualizado exitosamente"
-  }
-  ```
-- **Acción:** Cambia el estado de una matrícula.
+- Body: `{ "nuevo_estado": "ACTIVO" }` — cambia estado de la matrícula.
 
 ### GET /matriculas/periodo/:cod_periodo
-- **Recibe:** Nada
-- **Devuelve:** Listado de matrículas del periodo
-- **Acción:** Lista todas las matrículas de un periodo académico.
+- Devuelve todas las matrículas para el periodo.
 
 ---
 
 ## 4. Registro de Materias
 
 ### GET /registro-materias/disponibles/:cod_estudiante
-- **Recibe:** Nada
-- **Devuelve:** Listado de asignaturas disponibles para inscribir
-- **Acción:** Muestra las materias que el estudiante puede inscribir.
+- Devuelve 200 OK con array de asignaturas que el estudiante puede inscribir.
 
 ### GET /registro-materias/grupos/:cod_asignatura
-- **Recibe:** Nada
-- **Devuelve:** Listado de grupos disponibles para una asignatura
-- **Acción:** Muestra los grupos activos y cupos disponibles de una asignatura.
+- Devuelve 200 OK con array de grupos disponibles para esa asignatura (incluye `cupo_disponible`).
 
 ### POST /registro-materias/inscribir
-- **Recibe:**
+- Body ejemplo:
   ```json
   {
     "cod_estudiante": "202500002",
     "cod_grupo": 101
   }
   ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Inscripción exitosa",
-    "cod_matricula": "..."
-  }
-  ```
-- **Acción:** Inscribe al estudiante en el grupo indicado.
+- Respuesta: 200 OK `{ "success": true, "message": "Inscripción exitosa", "cod_matricula": ... }`.
 
 ### DELETE /registro-materias/retirar/:cod_detalle_matricula
-- **Recibe:**
-  ```json
-  {
-    "motivo": "RETIRO VOLUNTARIO"
-  }
-  ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Retiro exitoso"
-  }
-  ```
-- **Acción:** Retira al estudiante de la asignatura indicada.
+- Body: `{ "motivo": "RETIRO VOLUNTARIO" }` — Respuesta 200 OK `{ "success": true, "message": "Retiro exitoso" }`.
 
 ### GET /registro-materias/mi-horario/:cod_estudiante
-- **Recibe:** Nada
-- **Devuelve:** Horario actual del estudiante
-- **Acción:** Muestra el horario de clases inscritas.
+- Devuelve horario vigente del estudiante.
 
 ### GET /registro-materias/resumen/:cod_estudiante
-- **Recibe:** Nada
-- **Devuelve:** Resumen de matrícula (créditos, riesgo, promedio)
-- **Acción:** Muestra el resumen académico del estudiante.
+- Devuelve resumen académico (créditos, riesgo, promedio).
 
 ---
 
 ## 5. Calificaciones
 
 ### POST /calificaciones/
-- **Recibe:**
+- Body ejemplo:
   ```json
   {
     "cod_detalle": 123,
@@ -246,51 +181,24 @@ A continuación se describe cada endpoint disponible, qué recibe, qué devuelve
     "observaciones": "Buen trabajo"
   }
   ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Calificación registrada"
-  }
-  ```
-- **Acción:** Registra una calificación para una actividad.
+- Respuesta: 200 OK `{ "success": true, "message": "Calificación registrada" }`.
 
 ### GET /calificaciones/estudiante/:cod_estudiante
-- **Recibe:** Nada
-- **Devuelve:** Listado de notas del estudiante
-- **Acción:** Muestra todas las calificaciones del estudiante.
+- Devuelve listado de calificaciones del estudiante.
 
 ### GET /calificaciones/grupo/:cod_grupo
-- **Recibe:** Nada
-- **Devuelve:** Listado de notas por grupo
-- **Acción:** Muestra las calificaciones de todos los estudiantes de un grupo.
+- Devuelve listado de calificaciones por grupo.
 
 ### PUT /calificaciones/:cod_calificacion
-- **Recibe:**
-  ```json
-  {
-    "nota": 4.0,
-    "observaciones": "Actualización"
-  }
-  ```
-- **Devuelve:**
-  ```json
-  {
-    "success": true,
-    "message": "Calificación actualizada y nota definitiva recalculada"
-  }
-  ```
-- **Acción:** Actualiza una calificación y recalcula la nota definitiva.
+- Body: `{ "nota": 4.0, "observaciones": "Actualización" }` — Respuesta 200 OK con mensaje de éxito; la nota definitiva puede recalcularse automáticamente.
 
 ### GET /calificaciones/historial/:cod_estudiante
-- **Recibe:** Nada
-- **Devuelve:** Resumen académico del estudiante (promedio, aprobadas, reprobadas, créditos)
-- **Acción:** Muestra el historial académico completo del estudiante.
+- Devuelve resumen académico (promedios, asignaturas aprobadas/reprobadas, créditos).
 
 ---
 
-## Notas
-- Todos los endpoints devuelven errores en formato JSON si ocurre algún problema.
-- Los endpoints GET no requieren body, solo parámetros en la URL.
-- Los endpoints POST/PUT/DELETE requieren body en formato JSON.
-- El token devuelto en login puede usarse para autenticación si el backend lo requiere.
+## Notas adicionales para Frontend
+- Siempre comprobar `status` HTTP además del body JSON para manejo de errores.
+- El token devuelto en `/auth/login` es el que debe enviarse en `Authorization` para endpoints protegidos.
+- Para endpoints que crean recursos, revisar código 201 vs 200; el body normalmente incluye `success` y `message`.
+- Si quieres, puedo generar una tabla con todos los endpoints, métodos, parámetros y ejemplos de request/response en formato más consumible (JSON o CSV) para integrarlo en la documentación del frontend.

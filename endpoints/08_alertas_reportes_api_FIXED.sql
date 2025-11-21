@@ -69,7 +69,7 @@ BEGIN
              JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
              JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
              WHERE m.cod_estudiante = e.cod_estudiante
-             AND nd.resultado = 'REPROBADO') as asignaturas_reprobadas,
+             AND nd.resultado IN ('REPROBADO','PERDIDA')) as asignaturas_reprobadas,
             -- Créditos actuales
             (SELECT COALESCE(SUM(a.creditos), 0)
              FROM DETALLE_MATRICULA dm
@@ -173,7 +173,7 @@ BEGIN
          JOIN DETALLE_MATRICULA dm ON nd.cod_detalle_matricula = dm.cod_detalle_matricula
          JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
          WHERE m.cod_estudiante = v_cod_estudiante
-         AND nd.resultado = 'REPROBADO')
+         AND nd.resultado IN ('REPROBADO','PERDIDA'))
     INTO v_promedio, v_reprobadas
     FROM DUAL;
 

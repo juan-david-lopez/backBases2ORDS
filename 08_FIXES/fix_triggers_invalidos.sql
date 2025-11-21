@@ -128,7 +128,7 @@ BEGIN
         IF v_nota_final >= 3.0 THEN
             v_estado_nota := 'APROBADO';
         ELSIF v_porcentaje_total >= 100 THEN
-            v_estado_nota := 'REPROBADO';
+            v_estado_nota := 'PERDIDA';
         ELSE
             v_estado_nota := 'EN_PROCESO';
         END IF;

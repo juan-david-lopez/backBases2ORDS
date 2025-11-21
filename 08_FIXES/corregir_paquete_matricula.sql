@@ -146,7 +146,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_MATRICULA AS
         INNER JOIN GRUPO g ON dm.cod_grupo = g.cod_grupo
         INNER JOIN ASIGNATURA a ON g.cod_asignatura = a.cod_asignatura
         WHERE dm.cod_matricula = p_cod_matricula
-        AND dm.estado_inscripcion IN ('INSCRITO', 'APROBADO', 'REPROBADO');
+        AND dm.estado_inscripcion IN ('INSCRITO', 'APROBADO', 'REPROBADO', 'PERDIDA');
         
         RETURN v_total_creditos;
     END calcular_creditos_matriculados;

@@ -357,7 +357,7 @@ BEGIN
             p.nombre_programa,
             hr.nivel_riesgo,
             COALESCE((SELECT AVG(nota_final) FROM NOTA_DEFINITIVA WHERE cod_estudiante = e.cod_estudiante), 0) as promedio,
-            COALESCE((SELECT COUNT(*) FROM NOTA_DEFINITIVA WHERE cod_estudiante = e.cod_estudiante AND resultado = ''REPROBADO''), 0) as reprobadas
+            COALESCE((SELECT COUNT(*) FROM NOTA_DEFINITIVA WHERE cod_estudiante = e.cod_estudiante AND resultado IN (''REPROBADO'', ''PERDIDA'')), 0) as reprobadas
         FROM (
             SELECT cod_estudiante, nivel_riesgo,
                    ROW_NUMBER() OVER (PARTITION BY cod_estudiante ORDER BY fecha_deteccion DESC) as rn
