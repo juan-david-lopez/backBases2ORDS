@@ -243,7 +243,6 @@ BEGIN
         v_alertas.append(v_alerta.to_clob());
     END IF;
 
-    :status_code := 200;
     HTP.PRINT(JSON_OBJECT(
         'cod_estudiante' VALUE :cod_estudiante,
         'riesgo_academico' VALUE v_riesgo,
@@ -257,10 +256,8 @@ BEGIN
 
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
-        :status_code := 404;
         HTP.PRINT('{"error": "Estudiante no encontrado"}');
     WHEN OTHERS THEN
-        :status_code := 500;
         HTP.PRINT('{"error": "' || REPLACE(SQLERRM, '"', '\"') || '"}');
 END;
 ]'
