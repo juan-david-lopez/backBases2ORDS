@@ -52,12 +52,8 @@ BEGIN
         p_pattern     => 'riesgo-academico'
     );
     
-    ORDS.DEFINE_HANDLER(
-        p_module_name => 'alertas',
-        p_pattern     => 'riesgo-academico',
-        p_method      => 'GET',
-        p_source_type => 'plsql/block',
-        p_source      => q'[
+DECLARE
+    v_src CLOB := q'{
 BEGIN
     HTP.PRINT('[');
     FOR rec IN (
@@ -67,16 +63,13 @@ BEGIN
             e.correo_institucional,
             hr.nivel_riesgo,
             p.nombre_programa,
-            -- Promedio acumulado
             (SELECT COALESCE(AVG(nota_final), 0)
              FROM NOTA_DEFINITIVA
              WHERE cod_estudiante = e.cod_estudiante) as promedio_acumulado,
-            -- Asignaturas reprobadas
             (SELECT COUNT(*)
              FROM NOTA_DEFINITIVA
              WHERE cod_estudiante = e.cod_estudiante
                          AND resultado IN ('REPROBADO','PERDIDA')) as asignaturas_reprobadas,
-            -- Créditos actuales
             (SELECT COALESCE(SUM(a.creditos), 0)
              FROM DETALLE_MATRICULA dm
              JOIN MATRICULA m ON dm.cod_matricula = m.cod_matricula
@@ -107,16 +100,22 @@ BEGIN
         ) || ',');
     END LOOP;
     HTP.PRINT('{}]');
-    
-    :status_code := 200;
-    
+
 EXCEPTION
     WHEN OTHERS THEN
-        :status_code := 500;
         HTP.PRINT('{"error": "' || REPLACE(SQLERRM, '"', '\"') || '"}');
 END;
-]'
+}';
+BEGIN
+    v_src := REPLACE(v_src,'{CLN}',CHR(58));
+    ORDS.DEFINE_HANDLER(
+        p_module_name => 'alertas',
+        p_pattern     => 'riesgo-academico',
+        p_method      => 'GET',
+        p_source_type => 'plsql/block',
+        p_source      => v_src
     );
+END;
     COMMIT;
     DBMS_OUTPUT.PUT_LINE('✓ GET /alertas/riesgo-academico creado');
 END;
@@ -172,7 +171,7 @@ BEGIN
         (SELECT COUNT(*)
          FROM NOTA_DEFINITIVA
          WHERE cod_estudiante = :cod_estudiante
-                 AND resultado IN ('REPROBADO','PERDIDA')
+                 AND resultado IN ('REPROBADO','PERDIDA'))
     INTO v_promedio, v_reprobadas
     FROM DUAL;
 
