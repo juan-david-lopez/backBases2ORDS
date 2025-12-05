@@ -8,4 +8,5 @@ SELECT trigger_name, status, table_name
 FROM USER_TRIGGERS 
 ORDER BY trigger_name;
 
+
 EXIT;
